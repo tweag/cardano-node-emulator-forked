@@ -40,10 +40,26 @@ import Cardano.Api (TxBodyContent (txValidityLowerBound))
 import Plutus.Script.Utils.Scripts
 import PlutusLedgerApi.V1 (Credential, DCert, dataToBuiltinData)
 import PlutusLedgerApi.V1.Scripts
-import PlutusLedgerApi.V3.Tx (TxOutRef (..))
+import PlutusLedgerApi.V2 qualified as V2 (TxId (..), TxOutRef (..))
+import PlutusLedgerApi.V3.Tx (TxId (..), TxOutRef (..))
 import PlutusTx (FromData (..), fromData)
 import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter (Pretty (..), viaShow)
+
+-- V3 and V2 TxId are different because they rely on a difference mechanism
+-- related to ToData and FromData. But their content is basically the same. Same
+-- goes for TxOutRef because they contain a TxId.
+toV2TxId :: TxId -> V2.TxId
+toV2TxId (TxId i) = V2.TxId i
+
+fromV2TxId :: V2.TxId -> TxId
+fromV2TxId (V2.TxId i) = TxId i
+
+toV2TxOutRef :: TxOutRef -> V2.TxOutRef
+toV2TxOutRef (TxOutRef i ix) = V2.TxOutRef (toV2TxId i) ix
+
+fromV2TxOutRef :: V2.TxOutRef -> TxOutRef
+fromV2TxOutRef (V2.TxOutRef i ix) = TxOutRef (fromV2TxId i) ix
 
 cardanoTxOutValue :: C.TxOut ctx era -> C.Value
 cardanoTxOutValue (C.TxOut _aie tov _tod _rs) =
