@@ -311,7 +311,9 @@ typedToUntypedMultiPurposeScript TypedMultiPurposeScript {..} dat = either trace
   ScriptContextResolvedScriptInfo {..} <- fromBuiltinDataEither "script info" dat
   case scriptContextScriptInfo of
     Api.MintingScript cur -> do
-      (red, txInfo) <- deserializeContext "minting" scriptContextRedeemer scriptContextTxInfo
+      red <- fromBuiltinDataEither "Minting redeemer" scriptContextRedeemer
+      txInfo <- fromBuiltinDataEither "Minting tx info" scriptContextTxInfo
+      -- (red, txInfo) <- deserializeContext "minting" scriptContextRedeemer scriptContextTxInfo
       return $ traceRunning "Minting" $ mintingTypedScript cur red txInfo
     Api.SpendingScript oRef mDat -> do
       (red, txInfo) <- deserializeContext "spending" scriptContextRedeemer scriptContextTxInfo
