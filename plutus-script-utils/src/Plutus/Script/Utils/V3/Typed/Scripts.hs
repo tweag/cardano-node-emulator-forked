@@ -30,7 +30,6 @@ import PlutusLedgerApi.V1 qualified as PV1
 import PlutusLedgerApi.V3
   ( BuiltinData,
     Credential (PubKeyCredential, ScriptCredential),
-    Datum,
     DatumHash,
     FromData,
     OutputDatum (OutputDatum, OutputDatumHash),
@@ -39,6 +38,7 @@ import PlutusLedgerApi.V3
     TxOutRef,
     addressCredential,
   )
+import PlutusLedgerApi.V3 qualified as PV3
 import Prettyprinter (Pretty (pretty), viaShow, (<+>))
 
 data WrongOutTypeError
@@ -89,23 +89,23 @@ checkValidatorAddress ct actualAddr = do
 -- | Checks that the given datum has the right type.
 checkDatum ::
   forall a m.
-  (PV1.FromData (DatumType a), MonadError ConnectionError m) =>
+  (PV1.FromData (Datum a), MonadError ConnectionError m) =>
   MultiPurposeScript a ->
-  Datum ->
-  m (DatumType a)
+  PV3.Datum ->
+  m (Datum a)
 checkDatum _ (PV1.Datum d) =
-  case PV1.fromBuiltinData @(DatumType a) d of
+  case PV1.fromBuiltinData @(Datum a) d of
     Just v -> pure v
     Nothing -> throwError $ WrongDatumType d
 
 -- | A 'TxOut' tagged by a phantom type: and the connection type of the output.
-data TypedScriptTxOut a = (FromData (DatumType a), ToData (DatumType a)) =>
+data TypedScriptTxOut a = (FromData (Datum a), ToData (Datum a)) =>
   TypedScriptTxOut
   { tyTxOutTxOut :: TxOut,
-    tyTxOutData :: DatumType a
+    tyTxOutData :: Datum a
   }
 
-instance (Eq (DatumType a)) => Eq (TypedScriptTxOut a) where
+instance (Eq (Datum a)) => Eq (TypedScriptTxOut a) where
   l == r =
     tyTxOutTxOut l == tyTxOutTxOut r
       && tyTxOutData l == tyTxOutData r
@@ -116,7 +116,7 @@ data TypedScriptTxOutRef a = TypedScriptTxOutRef
     tyTxOutRefOut :: TypedScriptTxOut a
   }
 
-instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a) where
+instance (Eq (Datum a)) => Eq (TypedScriptTxOutRef a) where
   l == r =
     tyTxOutRefRef l == tyTxOutRefRef r
       && tyTxOutRefOut l == tyTxOutRefOut r
@@ -124,14 +124,14 @@ instance (Eq (DatumType a)) => Eq (TypedScriptTxOutRef a) where
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOut ::
   forall out m.
-  ( FromData (DatumType out),
-    ToData (DatumType out),
+  ( FromData (Datum out),
+    ToData (Datum out),
     MonadError ConnectionError m
   ) =>
   MultiPurposeScript out ->
   TxOutRef ->
   TxOut ->
-  Datum ->
+  PV3.Datum ->
   m (TypedScriptTxOut out)
 typeScriptTxOut tv txOutRef txOut datum = do
   case addressCredential (txOutAddress txOut) of
@@ -152,14 +152,14 @@ typeScriptTxOut tv txOutRef txOut datum = do
 -- | Create a 'TypedScriptTxOut' from an existing 'TxOut' by checking the types of its parts.
 typeScriptTxOutRef ::
   forall out m.
-  ( FromData (DatumType out),
-    ToData (DatumType out),
+  ( FromData (Datum out),
+    ToData (Datum out),
     MonadError ConnectionError m
   ) =>
   MultiPurposeScript out ->
   TxOutRef ->
   TxOut ->
-  Datum ->
+  PV3.Datum ->
   m (TypedScriptTxOutRef out)
 typeScriptTxOutRef tv txOutRef txOut datum = do
   tyOut <- typeScriptTxOut tv txOutRef txOut datum
