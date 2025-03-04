@@ -1,6 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -30,72 +31,123 @@ import Prelude qualified as HS
 
 class ValidatorTypes a where
   -- Minting purpose type variables with default
-  type MintingRedeemerType a
+  type MintingRedeemer a
   type MintingTxInfo a
 
-  type MintingRedeemerType a = ()
+  type MintingRedeemer a = ()
   type MintingTxInfo a = Api.TxInfo
 
   -- Spending purpose type variables with default
-  type SpendingRedeemerType a
+  type SpendingRedeemer a
   type SpendingTxInfo a
-  type DatumType a
+  type Datum a
 
-  type SpendingRedeemerType a = ()
+  type SpendingRedeemer a = ()
   type SpendingTxInfo a = Api.TxInfo
-  type DatumType a = ()
+  type Datum a = ()
 
   -- Rewarding purpose type variables with default
-  type RewardingRedeemerType a
+  type RewardingRedeemer a
   type RewardingTxInfo a
 
-  type RewardingRedeemerType a = ()
+  type RewardingRedeemer a = ()
   type RewardingTxInfo a = Api.TxInfo
 
   -- Certifying purpose type variables with default
-  type CertifyingRedeemerType a
+  type CertifyingRedeemer a
   type CertifyingTxInfo a
 
-  type CertifyingRedeemerType a = ()
+  type CertifyingRedeemer a = ()
   type CertifyingTxInfo a = Api.TxInfo
 
   -- Voting purpose type variables with default
-  type VotingRedeemerType a
+  type VotingRedeemer a
   type VotingTxInfo a
 
-  type VotingRedeemerType a = ()
+  type VotingRedeemer a = ()
   type VotingTxInfo a = Api.TxInfo
 
   -- Proposing purpose type variables with default
-  type ProposingRedeemerType a
+  type ProposingRedeemer a
   type ProposingTxInfo a
 
-  type ProposingRedeemerType a = ()
+  type ProposingRedeemer a = ()
   type ProposingTxInfo a = Api.TxInfo
 
-type MintingScriptType a = Api.CurrencySymbol -> MintingRedeemerType a -> MintingTxInfo a -> Bool
+type ExplicitMintingScript mintingRed mintingTxInfo = Api.CurrencySymbol -> mintingRed -> mintingTxInfo -> Bool
 
-type SpendingScriptType a =
-  Api.TxOutRef -> Maybe (DatumType a) -> SpendingRedeemerType a -> SpendingTxInfo a -> Bool
+type MintingScript a = ExplicitMintingScript (MintingRedeemer a) (MintingTxInfo a)
 
-type RewardingScriptType a = Api.Credential -> RewardingRedeemerType a -> RewardingTxInfo a -> Bool
+type ExplicitSpendingScript datum spendingRed spendingTxInfo = Api.TxOutRef -> Maybe datum -> spendingRed -> spendingTxInfo -> Bool
 
-type CertifyingScriptType a =
-  Integer -> Api.TxCert -> CertifyingRedeemerType a -> CertifyingTxInfo a -> Bool
+type SpendingScript a = ExplicitSpendingScript (Datum a) (SpendingRedeemer a) (SpendingTxInfo a)
 
-type VotingScriptType a = Api.Voter -> VotingRedeemerType a -> VotingTxInfo a -> Bool
+type ExplicitRewardingScript rewardingRed rewardingTxInfo = Api.Credential -> rewardingRed -> rewardingTxInfo -> Bool
 
-type ProposingScriptType a =
-  Integer -> Api.ProposalProcedure -> ProposingRedeemerType a -> ProposingTxInfo a -> Bool
+type RewardingScript a = ExplicitRewardingScript (RewardingRedeemer a) (RewardingTxInfo a)
+
+type ExplicitCertifyingScript certifyingRed certifyingTxInfo = Integer -> Api.TxCert -> certifyingRed -> certifyingTxInfo -> Bool
+
+type CertifyingScript a = ExplicitCertifyingScript (CertifyingRedeemer a) (CertifyingTxInfo a)
+
+type ExplicitVotingScript votingRed votingTxInfo = Api.Voter -> votingRed -> votingTxInfo -> Bool
+
+type VotingScript a = ExplicitVotingScript (VotingRedeemer a) (VotingTxInfo a)
+
+type ExplicitProposingScript proposingRed proposingTxInfo = Integer -> Api.ProposalProcedure -> proposingRed -> proposingTxInfo -> Bool
+
+type ProposingScript a = ExplicitProposingScript (ProposingRedeemer a) (ProposingTxInfo a)
 
 data TypedMultiPurposeScript a = TypedMultiPurposeScript
-  { mintingTypedScript :: MintingScriptType a,
-    spendingTypedScript :: SpendingScriptType a,
-    rewardingTypedScript :: RewardingScriptType a,
-    certifyingTypedScript :: CertifyingScriptType a,
-    votingTypedScript :: VotingScriptType a,
-    proposingTypedScript :: ProposingScriptType a
+  { mintingScript :: MintingScript a,
+    spendingScript :: SpendingScript a,
+    rewardingScript :: RewardingScript a,
+    certifyingScript :: CertifyingScript a,
+    votingScript :: VotingScript a,
+    proposingScript :: ProposingScript a
   }
+
+data
+  ExplicitTypedMultiPurposeScript
+    mintingRed
+    mintingTxInfo
+    datum
+    spendingRed
+    spendingTxInfo
+    rewardingRed
+    rewardingTxInfo
+    certifyingRed
+    certifyingTxInfo
+    votingRed
+    votingTxInfo
+    proposingRed
+    proposingTxInfo = ExplicitTypedMultiPurposeScript
+  { explicitMintingScript :: ExplicitMintingScript mintingRed mintingTxInfo,
+    explicitSpendingScript :: ExplicitSpendingScript datum spendingRed spendingTxInfo,
+    explicitRewardingScript :: ExplicitRewardingScript rewardingRed rewardingTxInfo,
+    explicitCertifyingScript :: ExplicitCertifyingScript certifyingRed certifyingTxInfo,
+    explicitVotingScript :: ExplicitVotingScript votingRed votingTxInfo,
+    explicitProposingScript :: ExplicitProposingScript proposingRed proposingTxInfo
+  }
+
+typedToExplicitTypedMultiPurposeScript ::
+  TypedMultiPurposeScript a ->
+  ExplicitTypedMultiPurposeScript
+    (MintingRedeemer a)
+    (MintingTxInfo a)
+    (Datum a)
+    (SpendingRedeemer a)
+    (SpendingTxInfo a)
+    (RewardingRedeemer a)
+    (RewardingTxInfo a)
+    (CertifyingRedeemer a)
+    (CertifyingTxInfo a)
+    (VotingRedeemer a)
+    (VotingTxInfo a)
+    (ProposingRedeemer a)
+    (ProposingTxInfo a)
+typedToExplicitTypedMultiPurposeScript TypedMultiPurposeScript {..} =
+  ExplicitTypedMultiPurposeScript mintingScript spendingScript rewardingScript certifyingScript votingScript proposingScript
 
 {-# INLINEABLE alwaysFalseTypedMultiPurposeScript #-}
 alwaysFalseTypedMultiPurposeScript :: TypedMultiPurposeScript a
@@ -129,14 +181,14 @@ alwaysTrueSpendingScript = alwaysFalseTypedMultiPurposeScript `withSpendingPurpo
 
 -- | Adds (or overrides) the minting purpose to a V3 typed script
 {-# INLINEABLE withMintingPurpose #-}
-withMintingPurpose :: TypedMultiPurposeScript a -> MintingScriptType a -> TypedMultiPurposeScript a
-withMintingPurpose ts ms = ts {mintingTypedScript = ms}
+withMintingPurpose :: TypedMultiPurposeScript a -> MintingScript a -> TypedMultiPurposeScript a
+withMintingPurpose ts ms = ts {mintingScript = ms}
 
 -- | Adds a minting constraint to an existing minting purpose
 {-# INLINEABLE addMintingConstraint #-}
 addMintingConstraint ::
-  TypedMultiPurposeScript a -> MintingScriptType a -> TypedMultiPurposeScript a
-addMintingConstraint ts ms = ts `withMintingPurpose` \cs red txInfo -> mintingTypedScript ts cs red txInfo && ms cs red txInfo
+  TypedMultiPurposeScript a -> MintingScript a -> TypedMultiPurposeScript a
+addMintingConstraint ts ms = ts `withMintingPurpose` \cs red txInfo -> mintingScript ts cs red txInfo && ms cs red txInfo
 
 -- | Utility function to check that an input exists at a given script address
 {-# INLINEABLE inputExistsAtScriptAddress #-}
@@ -176,15 +228,15 @@ withOwnForwardingMintingScript ts getter =
 -- | Adds (or overrides) the spending purpose to a V3 typed script
 {-# INLINEABLE withSpendingPurpose #-}
 withSpendingPurpose ::
-  TypedMultiPurposeScript a -> SpendingScriptType a -> TypedMultiPurposeScript a
-withSpendingPurpose ts ss = ts {spendingTypedScript = ss}
+  TypedMultiPurposeScript a -> SpendingScript a -> TypedMultiPurposeScript a
+withSpendingPurpose ts ss = ts {spendingScript = ss}
 
 -- | Adds a spending constraint to an existing spending purpose
 {-# INLINEABLE addSpendingConstraint #-}
 addSpendingConstraint ::
-  TypedMultiPurposeScript a -> SpendingScriptType a -> TypedMultiPurposeScript a
+  TypedMultiPurposeScript a -> SpendingScript a -> TypedMultiPurposeScript a
 addSpendingConstraint ts ss =
-  ts `withSpendingPurpose` \oRef mDat red txInfo -> spendingTypedScript ts oRef mDat red txInfo && ss oRef mDat red txInfo
+  ts `withSpendingPurpose` \oRef mDat red txInfo -> spendingScript ts oRef mDat red txInfo && ss oRef mDat red txInfo
 
 -- | Getting the minted value from a TxInfo
 {-# INLINEABLE txInfoMintValueG #-}
@@ -222,22 +274,22 @@ withOwnForwardSpendingScript ts mintedValueGetter inputsGetter =
 
 {-# INLINEABLE withRewardingPurpose #-}
 withRewardingPurpose ::
-  TypedMultiPurposeScript a -> RewardingScriptType a -> TypedMultiPurposeScript a
-withRewardingPurpose ts rs = ts {rewardingTypedScript = rs}
+  TypedMultiPurposeScript a -> RewardingScript a -> TypedMultiPurposeScript a
+withRewardingPurpose ts rs = ts {rewardingScript = rs}
 
 {-# INLINEABLE withCertifyingPurpose #-}
 withCertifyingPurpose ::
-  TypedMultiPurposeScript a -> CertifyingScriptType a -> TypedMultiPurposeScript a
-withCertifyingPurpose ts cs = ts {certifyingTypedScript = cs}
+  TypedMultiPurposeScript a -> CertifyingScript a -> TypedMultiPurposeScript a
+withCertifyingPurpose ts cs = ts {certifyingScript = cs}
 
 {-# INLINEABLE withVotingPurpose #-}
-withVotingPurpose :: TypedMultiPurposeScript a -> VotingScriptType a -> TypedMultiPurposeScript a
-withVotingPurpose ts vs = ts {votingTypedScript = vs}
+withVotingPurpose :: TypedMultiPurposeScript a -> VotingScript a -> TypedMultiPurposeScript a
+withVotingPurpose ts vs = ts {votingScript = vs}
 
 {-# INLINEABLE withProposingPurpose #-}
 withProposingPurpose ::
-  TypedMultiPurposeScript a -> ProposingScriptType a -> TypedMultiPurposeScript a
-withProposingPurpose ts ps = ts {proposingTypedScript = ps}
+  TypedMultiPurposeScript a -> ProposingScript a -> TypedMultiPurposeScript a
+withProposingPurpose ts ps = ts {proposingScript = ps}
 
 data ScriptContextResolvedScriptInfo = ScriptContextResolvedScriptInfo
   { scriptContextTxInfo :: BuiltinData,
@@ -246,23 +298,6 @@ data ScriptContextResolvedScriptInfo = ScriptContextResolvedScriptInfo
   }
 
 PlutusTx.unstableMakeIsData ''ScriptContextResolvedScriptInfo
-
-type TypedMultiPurposeScriptConstraints a =
-  ( ValidatorTypes a,
-    PlutusTx.FromData (MintingRedeemerType a),
-    PlutusTx.FromData (MintingTxInfo a),
-    PlutusTx.FromData (SpendingRedeemerType a),
-    PlutusTx.FromData (SpendingTxInfo a),
-    PlutusTx.FromData (DatumType a),
-    PlutusTx.FromData (RewardingRedeemerType a),
-    PlutusTx.FromData (RewardingTxInfo a),
-    PlutusTx.FromData (CertifyingRedeemerType a),
-    PlutusTx.FromData (CertifyingTxInfo a),
-    PlutusTx.FromData (VotingRedeemerType a),
-    PlutusTx.FromData (VotingTxInfo a),
-    PlutusTx.FromData (ProposingRedeemerType a),
-    PlutusTx.FromData (ProposingTxInfo a)
-  )
 
 newtype MultiPurposeScript a = MultiPurposeScript {getMultiPurposeScript :: PSU.Script}
   deriving stock (Generic)
@@ -306,33 +341,59 @@ compileUntypedMultiPurposeScript script = MultiPurposeScript $ PSU.Script $ Api.
 
 {-# INLINEABLE typedToUntypedMultiPurposeScript #-}
 typedToUntypedMultiPurposeScript ::
-  (TypedMultiPurposeScriptConstraints a) => TypedMultiPurposeScript a -> UntypedMultiPurposeScript
-typedToUntypedMultiPurposeScript TypedMultiPurposeScript {..} dat = either traceError check $ do
+  ( Api.FromData mintingRed,
+    Api.FromData mintingTxInfo,
+    Api.FromData datum,
+    Api.FromData spendingRed,
+    Api.FromData spendingTxInfo,
+    Api.FromData rewardingRed,
+    Api.FromData rewardingTxInfo,
+    Api.FromData certifyingRed,
+    Api.FromData certifyingTxInfo,
+    Api.FromData votingRed,
+    Api.FromData votingTxInfo,
+    Api.FromData proposingRed,
+    Api.FromData proposingTxInfo
+  ) =>
+  ExplicitTypedMultiPurposeScript
+    mintingRed
+    mintingTxInfo
+    datum
+    spendingRed
+    spendingTxInfo
+    rewardingRed
+    rewardingTxInfo
+    certifyingRed
+    certifyingTxInfo
+    votingRed
+    votingTxInfo
+    proposingRed
+    proposingTxInfo ->
+  UntypedMultiPurposeScript
+typedToUntypedMultiPurposeScript ExplicitTypedMultiPurposeScript {..} dat = either traceError check $ do
   ScriptContextResolvedScriptInfo {..} <- fromBuiltinDataEither "script info" dat
   case scriptContextScriptInfo of
     Api.MintingScript cur -> do
-      red <- fromBuiltinDataEither "Minting redeemer" scriptContextRedeemer
-      txInfo <- fromBuiltinDataEither "Minting tx info" scriptContextTxInfo
-      -- (red, txInfo) <- deserializeContext "minting" scriptContextRedeemer scriptContextTxInfo
-      return $ traceRunning "Minting" $ mintingTypedScript cur red txInfo
+      (red, txInfo) <- deserializeContext "minting" scriptContextRedeemer scriptContextTxInfo
+      return $ traceRunning "Minting" $ explicitMintingScript cur red txInfo
     Api.SpendingScript oRef mDat -> do
       (red, txInfo) <- deserializeContext "spending" scriptContextRedeemer scriptContextTxInfo
       mResolvedDat <- case mDat of
         Nothing -> return Nothing
         Just (Api.Datum bDat) -> Just <$> fromBuiltinDataEither "datum" bDat
-      return $ traceRunning "Spending" $ spendingTypedScript oRef mResolvedDat red txInfo
+      return $ traceRunning "Spending" $ explicitSpendingScript oRef mResolvedDat red txInfo
     Api.RewardingScript cred -> do
       (red, txInfo) <- deserializeContext "rewarding" scriptContextRedeemer scriptContextTxInfo
-      return $ traceRunning "Rewarding" $ rewardingTypedScript cred red txInfo
+      return $ traceRunning "Rewarding" $ explicitRewardingScript cred red txInfo
     Api.CertifyingScript i cert -> do
       (red, txInfo) <- deserializeContext "certifying" scriptContextRedeemer scriptContextTxInfo
-      return $ traceRunning "Certifying" $ certifyingTypedScript i cert red txInfo
+      return $ traceRunning "Certifying" $ explicitCertifyingScript i cert red txInfo
     Api.VotingScript voter -> do
       (red, txInfo) <- deserializeContext "voting" scriptContextRedeemer scriptContextTxInfo
-      return $ traceRunning "Voting" $ votingTypedScript voter red txInfo
+      return $ traceRunning "Voting" $ explicitVotingScript voter red txInfo
     Api.ProposingScript i prop -> do
       (red, txInfo) <- deserializeContext "proposing" scriptContextRedeemer scriptContextTxInfo
-      return $ traceRunning "Proposing" $ proposingTypedScript i prop red txInfo
+      return $ traceRunning "Proposing" $ explicitProposingScript i prop red txInfo
   where
     fromBuiltinDataEither name = maybe (Left $ "Error when deserializing the " <> name) Right . PlutusTx.fromBuiltinData
     traceRunning name = trace ("Running the validator with the " <> name <> " script purpose")
@@ -342,8 +403,26 @@ typedToUntypedMultiPurposeScript TypedMultiPurposeScript {..} dat = either trace
       return (red, txInfo)
 
 compileTypedMultiPurposeScript ::
-  (TypedMultiPurposeScriptConstraints a) => TypedMultiPurposeScript a -> MultiPurposeScript a
-compileTypedMultiPurposeScript = compileUntypedMultiPurposeScript . typedToUntypedMultiPurposeScript
+  ( PlutusTx.FromData (MintingRedeemer a),
+    PlutusTx.FromData (MintingTxInfo a),
+    PlutusTx.FromData (SpendingRedeemer a),
+    PlutusTx.FromData (SpendingTxInfo a),
+    PlutusTx.FromData (Datum a),
+    PlutusTx.FromData (RewardingRedeemer a),
+    PlutusTx.FromData (RewardingTxInfo a),
+    PlutusTx.FromData (CertifyingRedeemer a),
+    PlutusTx.FromData (CertifyingTxInfo a),
+    PlutusTx.FromData (VotingRedeemer a),
+    PlutusTx.FromData (VotingTxInfo a),
+    PlutusTx.FromData (ProposingRedeemer a),
+    PlutusTx.FromData (ProposingTxInfo a)
+  ) =>
+  TypedMultiPurposeScript a ->
+  MultiPurposeScript a
+compileTypedMultiPurposeScript =
+  compileUntypedMultiPurposeScript
+    . typedToUntypedMultiPurposeScript
+    . typedToExplicitTypedMultiPurposeScript
 
 class ToBuiltinUnit a where
   toBuiltinUnit :: a -> PlutusTx.BuiltinUnit
