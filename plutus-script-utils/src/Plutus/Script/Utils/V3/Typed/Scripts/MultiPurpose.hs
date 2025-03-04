@@ -40,11 +40,11 @@ class ValidatorTypes a where
   -- Spending purpose type variables with default
   type SpendingRedeemer a
   type SpendingTxInfo a
-  type Datum a
+  type SpendingDatum a
 
   type SpendingRedeemer a = ()
   type SpendingTxInfo a = Api.TxInfo
-  type Datum a = ()
+  type SpendingDatum a = ()
 
   -- Rewarding purpose type variables with default
   type RewardingRedeemer a
@@ -80,7 +80,7 @@ type MintingScript a = ExplicitMintingScript (MintingRedeemer a) (MintingTxInfo 
 
 type ExplicitSpendingScript datum spendingRed spendingTxInfo = Api.TxOutRef -> Maybe datum -> spendingRed -> spendingTxInfo -> Bool
 
-type SpendingScript a = ExplicitSpendingScript (Datum a) (SpendingRedeemer a) (SpendingTxInfo a)
+type SpendingScript a = ExplicitSpendingScript (SpendingDatum a) (SpendingRedeemer a) (SpendingTxInfo a)
 
 type ExplicitRewardingScript rewardingRed rewardingTxInfo = Api.Credential -> rewardingRed -> rewardingTxInfo -> Bool
 
@@ -135,7 +135,7 @@ typedToExplicitTypedMultiPurposeScript ::
   ExplicitTypedMultiPurposeScript
     (MintingRedeemer a)
     (MintingTxInfo a)
-    (Datum a)
+    (SpendingDatum a)
     (SpendingRedeemer a)
     (SpendingTxInfo a)
     (RewardingRedeemer a)
@@ -407,7 +407,7 @@ compileTypedMultiPurposeScript ::
     PlutusTx.FromData (MintingTxInfo a),
     PlutusTx.FromData (SpendingRedeemer a),
     PlutusTx.FromData (SpendingTxInfo a),
-    PlutusTx.FromData (Datum a),
+    PlutusTx.FromData (SpendingDatum a),
     PlutusTx.FromData (RewardingRedeemer a),
     PlutusTx.FromData (RewardingTxInfo a),
     PlutusTx.FromData (CertifyingRedeemer a),
